@@ -33,6 +33,19 @@ describe("computeBill", () => {
     expect(bill.unitPrice).toBe(448);
   });
 
+  it("adds beverages to the subtotal without multiplying by quantity", () => {
+    const bill = computeBill({ ...cart, quantity: 2, beveragePrices: [59, 129] });
+    expect(bill.beverageTotal).toBe(188);
+    expect(bill.subtotal).toBe(round2(517 * 2 + 188)); // 1222
+    expect(bill.discount).toBe(0); // pizza quantity still below threshold
+    expect(bill.gst).toBe(round2(1222 * 0.18));
+  });
+
+  it("defaults beverageTotal to zero when none picked", () => {
+    const bill = computeBill({ ...cart, quantity: 1 });
+    expect(bill.beverageTotal).toBe(0);
+  });
+
   it("exposes the discount threshold as a constant", () => {
     expect(DISCOUNT_THRESHOLD).toBe(5);
   });

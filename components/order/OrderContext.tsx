@@ -20,6 +20,8 @@ interface OrderState {
   setPizzaId: (v: string | null) => void;
   toppingIds: string[];
   toggleTopping: (id: string) => void;
+  beverageIds: string[];
+  toggleBeverage: (id: string) => void;
   quantity: number;
   setQuantity: (v: number) => void;
   paymentMode: PaymentMode | null;
@@ -39,6 +41,7 @@ export function OrderProvider({ tableId, children }: { tableId: string; children
   const [baseId, setBaseId] = useState<string | null>(null);
   const [pizzaId, setPizzaId] = useState<string | null>(null);
   const [toppingIds, setToppingIds] = useState<string[]>([]);
+  const [beverageIds, setBeverageIds] = useState<string[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [paymentMode, setPaymentMode] = useState<PaymentMode | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -49,13 +52,18 @@ export function OrderProvider({ tableId, children }: { tableId: string; children
       current.includes(id) ? current.filter((t) => t !== id) : [...current, id]
     );
 
+  const toggleBeverage = (id: string) =>
+    setBeverageIds((current) =>
+      current.includes(id) ? current.filter((b) => b !== id) : [...current, id]
+    );
+
   return (
     <OrderContext.Provider
       value={{
         step, setStep, tableId,
         customerName, setCustomerName, phone, setPhone,
         baseId, setBaseId, pizzaId, setPizzaId,
-        toppingIds, toggleTopping, quantity, setQuantity,
+        toppingIds, toggleTopping, beverageIds, toggleBeverage, quantity, setQuantity,
         paymentMode, setPaymentMode,
         orderId, setOrderId, confirmedBill, setConfirmedBill,
       }}

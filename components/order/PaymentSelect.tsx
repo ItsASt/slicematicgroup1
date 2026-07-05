@@ -6,10 +6,11 @@ import { useOrder } from "./OrderContext";
 import { PAYMENT_MODES, PaymentMode } from "@/lib/validation";
 
 const MODE_LABELS: Record<PaymentMode, string> = { cash: "Cash", card: "Card", upi: "UPI" };
+const MODE_ICONS: Record<PaymentMode, string> = { cash: "💵", card: "💳", upi: "📱" };
 
 export default function PaymentSelect() {
   const {
-    customerName, phone, tableId, baseId, pizzaId, toppingIds, quantity,
+    customerName, phone, tableId, baseId, pizzaId, toppingIds, beverageIds, quantity,
     paymentMode, setPaymentMode, setStep, setOrderId, setConfirmedBill,
   } = useOrder();
   const [submitting, setSubmitting] = useState(false);
@@ -28,7 +29,7 @@ export default function PaymentSelect() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerName, phone, tableId,
-          baseId, pizzaId, toppingIds, quantity, paymentMode,
+          baseId, pizzaId, toppingIds, beverageIds, quantity, paymentMode,
         }),
       });
       const data = await res.json();
@@ -56,21 +57,30 @@ export default function PaymentSelect() {
       <button onClick={() => setStep("menu")} className="text-sm text-zinc-400 hover:text-white">
         ← Back to menu
       </button>
-      <h2 className="text-2xl font-bold">How would you like to pay?</h2>
+      <div>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent)]">
+          Final step
+        </p>
+        <h2 className="text-2xl font-bold">How would you like to pay?</h2>
+      </div>
       <div className="grid grid-cols-3 gap-3">
         {PAYMENT_MODES.map((mode) => (
-          <button
+          <motion.button
             key={mode}
             type="button"
+            whileTap={{ scale: 0.93 }}
+            animate={paymentMode === mode ? { scale: [1, 1.06, 1] } : {}}
+            transition={{ duration: 0.25 }}
             onClick={() => { setPaymentMode(mode); setError(null); }}
-            className={`rounded-xl border py-6 font-semibold backdrop-blur transition ${
+            className={`flex flex-col items-center gap-2 rounded-xl border py-6 font-semibold backdrop-blur transition-colors ${
               paymentMode === mode
-                ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                ? "border-[var(--accent)] bg-[var(--accent)]/15 shadow-[0_0_22px_-4px_var(--accent)]"
                 : "border-white/10 bg-white/5 hover:border-white/30"
             }`}
           >
+            <span className="text-2xl">{MODE_ICONS[mode]}</span>
             {MODE_LABELS[mode]}
-          </button>
+          </motion.button>
         ))}
       </div>
       {paymentMode && (
@@ -79,13 +89,14 @@ export default function PaymentSelect() {
         </p>
       )}
       {error && <p className="text-sm text-red-400">{error}</p>}
-      <button
+      <motion.button
         onClick={placeOrder}
         disabled={submitting}
-        className="w-full rounded-xl bg-[var(--accent)] py-3 font-semibold text-black disabled:opacity-50"
+        whileTap={{ scale: 0.97 }}
+        className="glow-button w-full rounded-xl bg-[var(--accent)] py-3 font-semibold text-black disabled:opacity-50"
       >
-        {submitting ? "Placing order…" : "Confirm order"}
-      </button>
+        {submitting ? "Beaming to kitchen…" : "Fire the order 🔥"}
+      </motion.button>
     </motion.div>
   );
 }

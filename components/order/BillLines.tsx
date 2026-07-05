@@ -8,8 +8,17 @@ export default function BillLines({ bill, quantity }: { bill: Bill; quantity: nu
         <span>Per pizza</span>
         <span>{formatINR(bill.unitPrice)}</span>
       </div>
+      {bill.beverageTotal > 0 && (
+        <div className="flex justify-between text-zinc-300">
+          <span>Beverages</span>
+          <span>{formatINR(bill.beverageTotal)}</span>
+        </div>
+      )}
       <div className="flex justify-between text-zinc-300">
-        <span>Subtotal ({quantity} × {formatINR(bill.unitPrice)})</span>
+        <span>
+          Subtotal ({quantity} × {formatINR(bill.unitPrice)}
+          {bill.beverageTotal > 0 ? " + drinks" : ""})
+        </span>
         <span>{formatINR(bill.subtotal)}</span>
       </div>
       {bill.discount > 0 && (

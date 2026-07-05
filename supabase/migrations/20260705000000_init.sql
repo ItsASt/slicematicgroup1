@@ -18,6 +18,12 @@ create table toppings (
   price numeric(10,2) not null check (price > 0)
 );
 
+create table beverages (
+  id text primary key,
+  name text not null,
+  price numeric(10,2) not null check (price > 0)
+);
+
 create table orders (
   id uuid primary key default gen_random_uuid(),
   customer_name text not null,
@@ -35,7 +41,7 @@ create table orders (
 create table order_items (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references orders(id) on delete cascade,
-  item_type text not null check (item_type in ('base', 'pizza', 'topping')),
+  item_type text not null check (item_type in ('base', 'pizza', 'topping', 'beverage')),
   item_id text not null,
   -- Snapshot name and price at order time so later menu edits never change past bills.
   item_name text not null,
@@ -56,6 +62,7 @@ create table waiter_calls (
 alter table bases enable row level security;
 alter table pizzas enable row level security;
 alter table toppings enable row level security;
+alter table beverages enable row level security;
 alter table orders enable row level security;
 alter table order_items enable row level security;
 alter table waiter_calls enable row level security;
@@ -63,6 +70,7 @@ alter table waiter_calls enable row level security;
 create policy "public read bases" on bases for select using (true);
 create policy "public read pizzas" on pizzas for select using (true);
 create policy "public read toppings" on toppings for select using (true);
+create policy "public read beverages" on beverages for select using (true);
 
 create policy "staff read orders" on orders for select to authenticated using (true);
 create policy "staff update orders" on orders for update to authenticated using (true);
@@ -73,10 +81,10 @@ create policy "staff update waiter_calls" on waiter_calls for update to authenti
 -- Table grants: Supabase no longer auto-exposes new tables to API roles.
 -- RLS policies above still govern row-level access for anon/authenticated.
 grant usage on schema public to anon, authenticated, service_role;
-grant select on bases, pizzas, toppings to anon, authenticated;
+grant select on bases, pizzas, toppings, beverages to anon, authenticated;
 grant select on orders, order_items, waiter_calls to authenticated;
 grant update on orders, waiter_calls to authenticated;
-grant all on bases, pizzas, toppings, orders, order_items, waiter_calls to service_role;
+grant all on bases, pizzas, toppings, beverages, orders, order_items, waiter_calls to service_role;
 
 -- Realtime: kitchen and admin subscribe to these tables.
 alter publication supabase_realtime add table orders;

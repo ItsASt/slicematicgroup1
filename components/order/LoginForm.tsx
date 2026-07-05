@@ -29,10 +29,22 @@ export default function LoginForm() {
       exit={{ opacity: 0, y: -24 }}
       className="mx-auto w-full max-w-md p-6"
     >
-      <p className="mb-1 text-sm text-zinc-400">Table {tableId}</p>
-      <h1 className="mb-8 text-3xl font-bold">
+      <motion.div
+        animate={{ y: [-6, 6, -6], rotate: [0, 6, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="mx-auto mb-4 w-fit text-6xl drop-shadow-[0_0_30px_rgba(255,92,26,0.5)]"
+      >
+        🍕
+      </motion.div>
+      <p className="mb-1 text-center text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent)]">
+        Table {tableId}
+      </p>
+      <h1 className="mb-2 text-center text-3xl font-bold">
         Welcome to Slice<span className="text-[var(--accent)]">Matic</span>
       </h1>
+      <p className="mb-8 text-center text-sm text-zinc-400">
+        Forge your own pizza. Watch it build live.
+      </p>
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <div>
           <label htmlFor="name" className="mb-1 block text-sm text-zinc-300">Your name</label>
@@ -41,7 +53,7 @@ export default function LoginForm() {
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             placeholder="e.g. Rajan Sharma"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none backdrop-blur focus:border-[var(--accent)]"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none backdrop-blur transition focus:border-[var(--accent)] focus:shadow-[0_0_16px_-4px_var(--accent)]"
           />
           {nameError && <p className="mt-1 text-sm text-red-400">{nameError}</p>}
         </div>
@@ -53,16 +65,17 @@ export default function LoginForm() {
             onChange={(e) => setPhone(e.target.value)}
             placeholder="10-digit mobile number"
             inputMode="numeric"
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none backdrop-blur focus:border-[var(--accent)]"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none backdrop-blur transition focus:border-[var(--accent)] focus:shadow-[0_0_16px_-4px_var(--accent)]"
           />
           {phoneError && <p className="mt-1 text-sm text-red-400">{phoneError}</p>}
         </div>
-        <button
+        <motion.button
           type="submit"
-          className="w-full rounded-xl bg-[var(--accent)] py-3 font-semibold text-black transition hover:brightness-110"
+          whileTap={{ scale: 0.97 }}
+          className="glow-button w-full rounded-xl bg-[var(--accent)] py-3 font-semibold text-black transition hover:brightness-110"
         >
-          Start ordering
-        </button>
+          Enter the forge →
+        </motion.button>
       </form>
     </motion.div>
   );

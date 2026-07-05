@@ -19,6 +19,7 @@ const FILES: { file: string; table: string }[] = [
   { file: "Types_of_Base.txt", table: "bases" },
   { file: "Types_of_Pizza.txt", table: "pizzas" },
   { file: "Types_of_Toppings.txt", table: "toppings" },
+  { file: "Types_of_Beverages.txt", table: "beverages" },
 ];
 
 async function seed() {

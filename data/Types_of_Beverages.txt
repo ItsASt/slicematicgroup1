@@ -1,0 +1,6 @@
+D1 ; Cola ; 59
+D2 ; Masala Chaas ; 69
+D3 ; Fresh Lime Soda ; 79
+D4 ; Orange Crush ; 89
+D5 ; Iced Tea ; 99
+D6 ; Cold Coffee ; 129

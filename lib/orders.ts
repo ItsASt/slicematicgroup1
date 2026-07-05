@@ -16,6 +16,7 @@ export interface OrderPayload {
   baseId: string;
   pizzaId: string;
   toppingIds: string[];
+  beverageIds?: string[];
   quantity: number;
   paymentMode: string;
 }
@@ -32,7 +33,7 @@ export interface NewOrder {
 }
 
 export interface NewOrderItem {
-  item_type: "base" | "pizza" | "topping";
+  item_type: "base" | "pizza" | "topping" | "beverage";
   item_id: string;
   item_name: string;
   unit_price: number;
@@ -82,12 +83,27 @@ export function buildOrder(payload: OrderPayload, menu: Menu): BuildResult {
     toppings.push(topping);
   }
 
+  const beverageIds = payload.beverageIds ?? [];
+  if (!Array.isArray(beverageIds)) {
+    return { ok: false, error: "Beverages must be a list." };
+  }
+  if (new Set(beverageIds).size !== beverageIds.length) {
+    return { ok: false, error: "Each beverage can only be added once." };
+  }
+  const beverages: MenuItem[] = [];
+  for (const id of beverageIds) {
+    const beverage = findItem(menu.beverages, id);
+    if (!beverage) return { ok: false, error: "A selected beverage was not found on the menu." };
+    beverages.push(beverage);
+  }
+
   const quantity = Number(payload.quantity);
   const bill = computeBill({
     basePrice: Number(base.price),
     pizzaPrice: Number(pizza.price),
     toppingPrices: toppings.map((t) => Number(t.price)),
     quantity,
+    beveragePrices: beverages.map((b) => Number(b.price)),
   });
 
   const order: NewOrder = {
@@ -110,6 +126,14 @@ export function buildOrder(payload: OrderPayload, menu: Menu): BuildResult {
       item_name: t.name,
       unit_price: Number(t.price),
       quantity,
+    })),
+    // Beverages are one each, independent of pizza quantity.
+    ...beverages.map((b): NewOrderItem => ({
+      item_type: "beverage",
+      item_id: b.id,
+      item_name: b.name,
+      unit_price: Number(b.price),
+      quantity: 1,
     })),
   ];
 

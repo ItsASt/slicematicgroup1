@@ -8,12 +8,13 @@ export interface Menu {
   bases: MenuItem[];
   pizzas: MenuItem[];
   toppings: MenuItem[];
+  beverages: MenuItem[];
 }
 
 export interface OrderItemRow {
   id: string;
   order_id: string;
-  item_type: "base" | "pizza" | "topping";
+  item_type: "base" | "pizza" | "topping" | "beverage";
   item_id: string;
   item_name: string;
   unit_price: number;

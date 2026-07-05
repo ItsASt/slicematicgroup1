@@ -12,3 +12,75 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   min-height: 100dvh;
 }
+
+/* Ambient aurora + faint grid behind every page. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(255, 92, 26, 0.16), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 85% 108%, rgba(124, 58, 237, 0.14), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 8% 82%, rgba(14, 165, 233, 0.1), transparent 70%),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+}
+
+/* Pizza canvas motion */
+@keyframes pizza-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pizza-spin {
+  animation: pizza-spin 90s linear infinite;
+  transform-origin: 160px 160px;
+}
+
+.pizza-spin-reverse {
+  animation: pizza-spin 30s linear infinite reverse;
+  transform-origin: 160px 160px;
+}
+
+@keyframes ghost-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
+
+.ghost-pulse {
+  animation: ghost-pulse 2.4s ease-in-out infinite;
+}
+
+/* Primary CTA glow */
+.glow-button {
+  box-shadow: 0 0 24px -6px var(--accent);
+  transition: box-shadow 0.2s ease;
+}
+
+.glow-button:hover {
+  box-shadow: 0 0 34px -4px var(--accent);
+}
+
+/* Oven flames on the confirmation screen */
+@keyframes flame-flicker {
+  0%, 100% { transform: scaleY(1) translateY(0); opacity: 0.9; }
+  30% { transform: scaleY(1.25) translateY(-2px); opacity: 1; }
+  60% { transform: scaleY(0.85) translateY(1px); opacity: 0.75; }
+}
+
+.flame {
+  animation: flame-flicker 0.5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pizza-spin,
+  .pizza-spin-reverse,
+  .ghost-pulse,
+  .flame {
+    animation: none;
+  }
+}

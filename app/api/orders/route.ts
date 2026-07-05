@@ -13,19 +13,25 @@ export async function POST(request: Request) {
     }
 
     const db = createAdminClient();
-    const [bases, pizzas, toppings] = await Promise.all([
+    const [bases, pizzas, toppings, beverages] = await Promise.all([
       db.from("bases").select("id,name,price"),
       db.from("pizzas").select("id,name,price"),
       db.from("toppings").select("id,name,price"),
+      db.from("beverages").select("id,name,price"),
     ]);
-    if (bases.error || pizzas.error || toppings.error) {
+    if (bases.error || pizzas.error || toppings.error || beverages.error) {
       return NextResponse.json(
         { error: "Menu is temporarily unavailable. Please try again in a moment." },
         { status: 503 }
       );
     }
 
-    const menu: Menu = { bases: bases.data, pizzas: pizzas.data, toppings: toppings.data };
+    const menu: Menu = {
+      bases: bases.data,
+      pizzas: pizzas.data,
+      toppings: toppings.data,
+      beverages: beverages.data,
+    };
     const result = buildOrder(payload, menu);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });

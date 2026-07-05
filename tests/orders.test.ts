@@ -9,6 +9,10 @@ const menu: Menu = {
     { id: "T9", name: "Extra Cheese", price: 69 },
     { id: "T3", name: "Black Olives", price: 49 },
   ],
+  beverages: [
+    { id: "D1", name: "Cola", price: 59 },
+    { id: "D6", name: "Cold Coffee", price: 129 },
+  ],
 };
 
 const valid: OrderPayload = {
@@ -64,6 +68,30 @@ describe("buildOrder", () => {
 
   it("rejects duplicate topping ids", () => {
     expect(buildOrder({ ...valid, toppingIds: ["T9", "T9"] }, menu).ok).toBe(false);
+  });
+
+  it("adds beverages once each, not multiplied by pizza quantity", () => {
+    const result = buildOrder({ ...valid, beverageIds: ["D1", "D6"] }, menu);
+    if (!result.ok) throw new Error(result.error);
+    // pizzas: 517 * 5 = 2585; drinks: 59 + 129 = 188; subtotal 2773
+    expect(result.order.subtotal).toBe(2773);
+    expect(result.order.discount).toBe(277.3);
+    const beverageRows = result.items.filter((i) => i.item_type === "beverage");
+    expect(beverageRows).toHaveLength(2);
+    expect(beverageRows.every((i) => i.quantity === 1)).toBe(true);
+  });
+
+  it("rejects unknown or duplicate beverage ids", () => {
+    expect(buildOrder({ ...valid, beverageIds: ["D99"] }, menu).ok).toBe(false);
+    expect(buildOrder({ ...valid, beverageIds: ["D1", "D1"] }, menu).ok).toBe(false);
+    expect(buildOrder({ ...valid, beverageIds: "D1" as unknown as string[] }, menu).ok).toBe(false);
+  });
+
+  it("treats a missing beverageIds field as no beverages", () => {
+    const result = buildOrder(valid, menu);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.items.some((i) => i.item_type === "beverage")).toBe(false);
+    expect(result.order.subtotal).toBe(2585);
   });
 
   it("rejects a malformed payload shape without throwing", () => {

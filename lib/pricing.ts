@@ -16,21 +16,25 @@ export interface BillInput {
   pizzaPrice: number;
   toppingPrices: number[];
   quantity: number;
+  /** Beverages are per-order (not multiplied by pizza quantity). */
+  beveragePrices?: number[];
 }
 
 export interface Bill {
   unitPrice: number;
+  beverageTotal: number;
   subtotal: number;
   discount: number;
   gst: number;
   total: number;
 }
 
-export function computeBill({ basePrice, pizzaPrice, toppingPrices, quantity }: BillInput): Bill {
+export function computeBill({ basePrice, pizzaPrice, toppingPrices, quantity, beveragePrices = [] }: BillInput): Bill {
   const unitPrice = round2(basePrice + pizzaPrice + toppingPrices.reduce((sum, p) => sum + p, 0));
-  const subtotal = round2(unitPrice * quantity);
+  const beverageTotal = round2(beveragePrices.reduce((sum, p) => sum + p, 0));
+  const subtotal = round2(unitPrice * quantity + beverageTotal);
   const discount = quantity >= DISCOUNT_THRESHOLD ? round2(subtotal * DISCOUNT_RATE) : 0;
   const gst = round2((subtotal - discount) * GST_RATE);
   const total = round2(subtotal - discount + gst);
-  return { unitPrice, subtotal, discount, gst, total };
+  return { unitPrice, beverageTotal, subtotal, discount, gst, total };
 }
