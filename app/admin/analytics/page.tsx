@@ -54,6 +54,32 @@ function Panel({ title, hint, children }: { title: string; hint?: string; childr
   );
 }
 
+function Segmented<T extends string | number | null>({
+  options, value, onChange,
+}: {
+  options: { label: string; value: T }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
+      {options.map((opt) => (
+        <button
+          key={String(opt.value)}
+          onClick={() => onChange(opt.value)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+            opt.value === value
+              ? "bg-[var(--accent)] text-black"
+              : "text-zinc-400 hover:text-white"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 interface Analytics {
   ordersCount: number;
   revenue: number;
@@ -160,11 +186,14 @@ export default function AnalyticsPage() {
   const [events, setEvents] = useState<UpsellEventRow[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [rangeDays, setRangeDays] = useState<number | null>(56);
+  const [dayType, setDayType] = useState<"all" | "weekday" | "weekend">("all");
 
   const refresh = useCallback(() => {
     Promise.all([
       supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false }).limit(2000),
-      supabase.from("upsell_events").select("accepted, revenue_impact"),
+      supabase.from("upsell_events").select("accepted, revenue_impact, created_at"),
     ]).then(([ordersRes, eventsRes]) => {
       if (ordersRes.error) {
         setLoadError(true);
@@ -175,6 +204,7 @@ export default function AnalyticsPage() {
       setOrders(ordersRes.data as OrderRow[]);
       // upsell_events may not exist on older DBs — degrade gracefully.
       setEvents((eventsRes.error ? [] : eventsRes.data) as UpsellEventRow[]);
+      setUpdatedAt(new Date());
       setLoaded(true);
     });
   }, []);
@@ -182,9 +212,34 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (auth !== "authed") return;
     refresh();
+    // Live: refetch whenever a new order lands.
+    const channel = supabase
+      .channel("analytics")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, refresh)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [auth, refresh]);
 
-  const a = useMemo(() => analyze(orders, events), [orders, events]);
+  // Date-range + weekday/weekend filtering happens client-side so it feels instant.
+  const filtered = useMemo(() => {
+    const nowMs = updatedAt ? updatedAt.getTime() : 0;
+    const cutoff = rangeDays && nowMs ? nowMs - rangeDays * 86_400_000 : 0;
+    const keep = (ts: string) => {
+      const d = new Date(ts);
+      if (d.getTime() < cutoff) return false;
+      if (dayType === "all") return true;
+      const weekend = d.getDay() === 0 || d.getDay() === 6;
+      return dayType === "weekend" ? weekend : !weekend;
+    };
+    return {
+      orders: orders.filter((o) => keep(o.created_at)),
+      events: events.filter((e) => (e.created_at ? keep(e.created_at) : true)),
+    };
+  }, [orders, events, rangeDays, dayType, updatedAt]);
+
+  const a = useMemo(() => analyze(filtered.orders, filtered.events), [filtered]);
 
   if (auth !== "authed") {
     return <p className="p-10 text-center text-zinc-400">Checking access…</p>;
@@ -201,6 +256,42 @@ export default function AnalyticsPage() {
     <main className="min-h-dvh">
       <StaffHeader title="Admin — Analytics" />
       <div className="mx-auto max-w-6xl space-y-6 p-6">
+        {/* Filters — feel-live controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Segmented
+            value={rangeDays}
+            onChange={setRangeDays}
+            options={[
+              { label: "7 days", value: 7 },
+              { label: "30 days", value: 30 },
+              { label: "8 weeks", value: 56 },
+              { label: "All", value: null },
+            ]}
+          />
+          <Segmented
+            value={dayType}
+            onChange={setDayType}
+            options={[
+              { label: "All days", value: "all" },
+              { label: "Weekdays", value: "weekday" },
+              { label: "Weekends", value: "weekend" },
+            ]}
+          />
+          <div className="ml-auto flex items-center gap-3">
+            {updatedAt && (
+              <span className="text-xs text-zinc-500">
+                Live · updated {updatedAt.toLocaleTimeString()}
+              </span>
+            )}
+            <button
+              onClick={refresh}
+              className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-[var(--accent)] hover:text-white"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
         {loadError && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
             Couldn&apos;t load analytics — check the connection.{" "}
@@ -210,7 +301,9 @@ export default function AnalyticsPage() {
 
         {loaded && !loadError && a.ordersCount === 0 && (
           <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-zinc-400">
-            No orders yet — analytics will fill in as orders come in.
+            {orders.length === 0
+              ? "No orders yet — analytics will fill in as orders come in."
+              : "No orders match these filters — widen the date range or day type."}
           </div>
         )}
 
@@ -225,7 +318,7 @@ export default function AnalyticsPage() {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
-              <Panel title="Top-selling pizzas" hint="Pizzas sold (by quantity), all time">
+              <Panel title="Top-selling pizzas" hint="Pizzas sold, by quantity">
                 <div className="space-y-2">
                   {a.pizzaOverall.map(([name, qty]) => (
                     <Bar key={name} label={name} value={qty} max={maxPizza} display={String(qty)} />
@@ -234,15 +327,21 @@ export default function AnalyticsPage() {
               </Panel>
 
               <Panel title="Walk-ins by hour" hint={`Peak: ${hourLabel(a.peakHour)}`}>
-                <div className="flex h-40 items-end gap-1">
+                <div className="flex h-40 gap-1">
                   {a.byHour.map((count, h) => (
-                    <div key={h} className="flex flex-1 flex-col items-center gap-1" title={`${hourLabel(h)}: ${count}`}>
+                    <div key={h} className="flex h-full flex-1 flex-col justify-end" title={`${hourLabel(h)}: ${count}`}>
                       <div
                         className="w-full rounded-t bg-gradient-to-t from-[var(--accent)]/40 to-[var(--accent)]"
-                        style={{ height: `${(count / maxHour) * 100}%` }}
+                        style={{ height: `${count > 0 ? Math.max(6, (count / maxHour) * 100) : 0}%` }}
                       />
-                      {h % 3 === 0 && <span className="text-[8px] text-zinc-500">{h}</span>}
                     </div>
+                  ))}
+                </div>
+                <div className="mt-1 flex gap-1">
+                  {a.byHour.map((_, h) => (
+                    <span key={h} className="flex-1 text-center text-[8px] text-zinc-500">
+                      {h % 3 === 0 ? h : ""}
+                    </span>
                   ))}
                 </div>
               </Panel>
