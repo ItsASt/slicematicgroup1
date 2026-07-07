@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOrder } from "./OrderContext";
 import BillLines from "./BillLines";
+import MoodRecommender from "./MoodRecommender";
 import PizzaCanvas from "./PizzaCanvas";
 import UpsellSuggestion from "./UpsellSuggestion";
 import { supabase } from "@/lib/supabase/client";
 import { computeBill, formatINR } from "@/lib/pricing";
 import { validateQuantity } from "@/lib/validation";
 import type { Menu, MenuItem } from "@/lib/types";
+import type { MoodItemType } from "@/lib/mood";
 
 type LoadState = "loading" | "error" | "ready";
 
@@ -141,6 +143,18 @@ export default function MenuBuilder() {
       beveragePrices: selectedBeverages.map((b) => Number(b.price)),
     });
   }, [selectedBase, selectedPizza, selectedToppings, selectedBeverages, quantity, qtyError]);
+
+  function applyMoodPick(type: MoodItemType, id: string) {
+    if (type === "base") {
+      setBaseId(id);
+    } else if (type === "pizza") {
+      setPizzaId(id);
+    } else if (type === "topping") {
+      if (!toppingIds.includes(id)) toggleTopping(id);
+    } else if (!beverageIds.includes(id)) {
+      toggleBeverage(id);
+    }
+  }
 
   if (loadState === "loading") {
     return (
@@ -284,6 +298,16 @@ export default function MenuBuilder() {
           <p className="mt-2 text-xs text-zinc-500">Order 5 or more and get 10% off automatically.</p>
         </section>
       </div>
+
+      <MoodRecommender
+        onPick={applyMoodPick}
+        selectedIds={{
+          base: baseId ? [baseId] : [],
+          pizza: pizzaId ? [pizzaId] : [],
+          topping: toppingIds,
+          beverage: beverageIds,
+        }}
+      />
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-black/70 p-4 backdrop-blur-xl">
         <div className="mx-auto max-w-md">
