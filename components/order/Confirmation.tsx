@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOrder } from "./OrderContext";
 import BillLines from "./BillLines";
+import FeedbackForm from "./FeedbackForm";
 
 const MODE_LABELS: Record<string, string> = { cash: "Cash", card: "Card", upi: "UPI" };
 
@@ -264,6 +265,8 @@ export default function Confirmation() {
       >
         Order another pizza 🍕
       </motion.button>
+
+      <FeedbackForm orderId={orderId} />
     </motion.div>
   );
 }

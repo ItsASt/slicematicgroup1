@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/ai/feedback-insights/refresh",
+      "schedule": "0 4 * * 1"
+    }
+  ]
+}

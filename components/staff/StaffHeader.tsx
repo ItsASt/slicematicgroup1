@@ -19,6 +19,7 @@ export default function StaffHeader({ title }: { title: string }) {
         <Link href="/kitchen" className="text-zinc-300 hover:text-white">Kitchen</Link>
         <Link href="/admin" className="text-zinc-300 hover:text-white">Admin</Link>
         <Link href="/admin/analytics" className="text-zinc-300 hover:text-white">Analytics</Link>
+        <Link href="/admin/insights" className="text-zinc-300 hover:text-white">Insights</Link>
         <Link href="/admin/upsell" className="text-zinc-300 hover:text-white">Upsell</Link>
         <button onClick={signOut} className="rounded-lg border border-white/15 px-3 py-1 text-zinc-300 hover:border-[var(--accent)]">
           Sign out
