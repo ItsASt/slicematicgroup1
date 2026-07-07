@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchMenu } from "@/lib/upsell-server";
 import type { Menu } from "@/lib/types";
@@ -138,7 +139,15 @@ export async function POST(request: NextRequest) {
     }
 
     const db = createAdminClient();
-    const menuResult = await fetchMenu(db);
+    // Menu read and rules read are independent — run them together to save a round-trip.
+    const [menuResult, rulesResult] = await Promise.all([
+      fetchMenu(db),
+      db
+        .from("upsell_rules")
+        .select("id,trigger_type,trigger_id,suggest_type,suggest_id,priority,min_quantity,max_quantity,reason_template")
+        .eq("active", true)
+        .order("priority", { ascending: true }),
+    ]);
     if (!menuResult.ok) {
       return NextResponse.json({ hasSuggestion: false, error: menuResult.error }, { status: 503 });
     }
@@ -151,12 +160,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ hasSuggestion: false, error: draftResult.error }, { status: 400 });
     }
 
-    const { data: ruleRows } = await db
-      .from("upsell_rules")
-      .select("id,trigger_type,trigger_id,suggest_type,suggest_id,priority,min_quantity,max_quantity,reason_template")
-      .eq("active", true)
-      .order("priority", { ascending: true });
-
+    const ruleRows = rulesResult.data;
     const rules = ruleRows && ruleRows.length > 0
       ? normalizeRules(ruleRows as UpsellRuleRow[])
       : buildFallbackRules(menuResult.menu);
@@ -167,9 +171,15 @@ export async function POST(request: NextRequest) {
 
     const aiMessage = await callOpenRouter(draftResult.order, candidate);
     const signature = cartSignature(draftResult.order);
-    const inserted = await db
-      .from("upsell_events")
-      .insert({
+
+    // Pre-generate the event id so we can log the impression AFTER responding.
+    // The insert no longer sits on the suggestion's critical path — the chip
+    // shows immediately, and `after()` keeps the function alive on Vercel to
+    // finish the write (analytics stays accurate).
+    const eventId = randomUUID();
+    after(async () => {
+      await db.from("upsell_events").insert({
+        id: eventId,
         rule_id: candidate.rule.id.startsWith("fallback-") ? null : candidate.rule.id,
         cart_signature: signature,
         suggested_type: candidate.suggestType,
@@ -179,9 +189,8 @@ export async function POST(request: NextRequest) {
         ai_message: aiMessage,
         displayed: true,
         accepted: null,
-      })
-      .select("id")
-      .single();
+      });
+    });
 
     return NextResponse.json({
       hasSuggestion: true,
@@ -189,7 +198,7 @@ export async function POST(request: NextRequest) {
       suggestedItem: candidate.item,
       message: aiMessage,
       ruleId: candidate.rule.id,
-      eventId: inserted.error ? null : inserted.data.id,
+      eventId,
     });
   } catch {
     return NextResponse.json(
